@@ -1,6 +1,7 @@
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.process.ExecOperations
+import java.io.File
 import javax.inject.Inject
 
 plugins {
@@ -16,8 +17,13 @@ abstract class PrepareJapaneseModels : DefaultTask() {
 
     @TaskAction
     fun prepare() {
+        val gitBash = File(System.getenv("ProgramFiles") ?: "", "Git/bin/bash.exe")
+        // Windows' System32 bash.exe launches WSL; prefer Git Bash when it is installed.
+        val bash = project.providers.gradleProperty("gptwake.bash").orNull
+            ?: gitBash.takeIf(File::isFile)?.absolutePath
+            ?: "bash"
         execOperations.exec {
-            commandLine("bash", fetchScript.get().asFile.absolutePath,
+            commandLine(bash, fetchScript.get().asFile.absolutePath,
                 outputDirectory.get().dir("ja").asFile.absolutePath)
         }
     }

@@ -3,6 +3,8 @@ build/
 debug.keystore
 third_party/**/*.tar.bz2
 local.properties
+.tools/
+.setup-cache/
 .gradle/
 app/build/
 measurements/

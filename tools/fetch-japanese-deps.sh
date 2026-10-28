@@ -4,7 +4,9 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 ja_dir="${1:-$repo_root/app/build/generated/japaneseAssets/ja}"
 checksums="$repo_root/app/src/main/assets/ja/SHA256SUMS"
-if [[ -d "$ja_dir" ]] && (cd "$ja_dir" && sha256sum --check --status "$checksums"); then
+# SHA256SUMS can be checked out with CRLF on Windows.  Feed a normalized stream so
+# sha256sum does not treat the carriage return as part of each model filename.
+if [[ -d "$ja_dir" ]] && (cd "$ja_dir" && sed 's/\r$//' "$checksums" | sha256sum --check --status -); then
   echo "Japanese models already verified."
   exit 0
 fi
@@ -29,7 +31,7 @@ for file in encoder_model.ort decoder_model_merged.ort tokens.txt; do
   cp "$download_dir/$model_name/$file" "$download_dir/verified/$file"
 done
 cp "$download_dir/silero_vad.onnx" "$download_dir/verified/silero_vad.onnx"
-(cd "$download_dir/verified" && sha256sum --check "$checksums")
+(cd "$download_dir/verified" && sed 's/\r$//' "$checksums" | sha256sum --check -)
 mkdir -p "$ja_dir"
 for file in encoder_model.ort decoder_model_merged.ort tokens.txt silero_vad.onnx; do
   cp "$download_dir/verified/$file" "$ja_dir/$file.tmp"
