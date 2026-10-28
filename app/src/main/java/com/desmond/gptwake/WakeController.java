@@ -309,9 +309,32 @@ public final class WakeController implements AudioProbe.WakeListener, AudioState
         set(State.CHATGPT_LAUNCHING);
         launchStartedAt = SystemClock.elapsedRealtime();
         deeplinkTried = false;
-        L.i("CHATGPT_LAUNCH_ATTEMPT route=AssistantActivity");
-        GptLauncher.launchDirect(ctx);
+
+        if (GptLauncher.isKeyguardLocked(ctx)) {
+            L.i("CHATGPT_LAUNCH_ATTEMPT route=ShimActivity keyguardLocked=true");
+            if (!GptLauncher.launchViaShim(ctx)) {
+                L.i("SHIM_LAUNCH_UNAVAILABLE, trying ChatGPT directly");
+                launchDirectOrDeeplink();
+            }
+        } else {
+            launchDirectOrDeeplink();
+        }
         later(this::checkVoiceConfirm, VOICE_CONFIRM_MS);
+    }
+
+    /**
+     * Package-manager failures are deterministic (for example, AssistantActivity is no longer
+     * exported), so do not wait five seconds before using ChatGPT's public voice deeplink.
+     * A successful startActivity call still needs confirmation because Android can silently block
+     * a background activity launch.
+     */
+    private void launchDirectOrDeeplink() {
+        L.i("CHATGPT_LAUNCH_ATTEMPT route=AssistantActivity");
+        if (GptLauncher.launchDirect(ctx)) return;
+
+        deeplinkTried = true;
+        L.i("DIRECT_LAUNCH_FAILED_FALLBACK route=deeplink");
+        GptLauncher.launchDeeplink(ctx);
     }
 
     private void checkVoiceConfirm() {

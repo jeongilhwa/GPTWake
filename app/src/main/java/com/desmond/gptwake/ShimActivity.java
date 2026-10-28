@@ -53,7 +53,11 @@ public class ShimActivity extends Activity {
 
         String action = getIntent().getStringExtra(EXTRA_ACTION);
         if ("launch".equals(action)) {
-            L.i("SHIM_LAUNCH_RESULT=" + GptLauncher.launch(this));
+            // This Activity is visible over the keyguard.  Launching ChatGPT from here avoids
+            // the background-activity-launch path used by the foreground service context.
+            boolean direct = GptLauncher.launchDirect(this);
+            boolean launched = direct || GptLauncher.launchDeeplink(this);
+            L.i("SHIM_LAUNCH_RESULT direct=" + direct + " launched=" + launched);
             done(800);
             return;
         }
